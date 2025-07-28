@@ -6,10 +6,19 @@ import "./App.css";
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
+  const [volume, setVolume] = useState(0);
 
   async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
     setGreetMsg(await invoke("greet", { name }));
+  }
+
+  async function getVolume() {
+    const volume = await invoke("get_volume");
+    setVolume(volume as number);
+  }
+
+  async function setVolume50() {
+    await invoke("set_volume", { volume: 50 });
   }
 
   return (
@@ -44,6 +53,12 @@ function App() {
         <button type="submit">Greet</button>
       </form>
       <p>{greetMsg}</p>
+
+      <div className="row">
+        <button onClick={getVolume}>Get Volume</button>
+        <button onClick={setVolume50}>Set Volume to 50</button>
+        <p>Current Volume: {volume}</p>
+      </div>
     </main>
   );
 }
