@@ -1,20 +1,26 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 
 function App() {
   const [volume, setVolume] = useState(0);
 
   useEffect(() => {
-    async function fetchVolume() {
-      const initialVolume = await invoke("get_volume");
+    const unlisten = listen("volume-changed", (event) => {
+      setVolume(event.payload as number);
+    });
+
+    invoke("get_volume").then((initialVolume) => {
       setVolume(initialVolume as number);
-    }
-    fetchVolume();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   async function handleVolumeChange(newVolume: number) {
-    setVolume(newVolume);
     await invoke("set_volume", { volume: newVolume });
   }
 
