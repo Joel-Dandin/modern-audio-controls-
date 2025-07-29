@@ -14,6 +14,7 @@ extern "C" {
     fn media_next() -> c_int;
     fn media_previous() -> c_int;
     fn media_seek(offset_microseconds: c_long) -> c_int;
+    #[allow(dead_code)]
     fn media_get_position() -> c_long;
     fn media_set_position(position_microseconds: c_long) -> c_int;
 }
@@ -62,25 +63,19 @@ pub fn seek(offset: i64) {
 }
 
 pub fn get_media_state() -> Option<(f64, f64)> {
-    // Try native D-Bus first
-    let position_microseconds = unsafe { media_get_position() };
-    
-    if position_microseconds >= 0 {
-        let position_seconds = position_microseconds as f64 / 1_000_000.0;
-        // For native D-Bus, we'd need additional calls to get duration
-        // For now, return position with estimated duration
-        Some((position_seconds, 300.0))
+    // Always use mpris for complete media state since it provides both position and duration reliably
+    // The native D-Bus would require additional complex calls to get metadata
+    if let Ok(player) = find_player() {
+        let position = player.get_position().unwrap_or_default().as_secs_f64();
+        let duration = player.get_metadata().ok()
+            .and_then(|m| m.length())
+            .unwrap_or_default().as_secs_f64();
+        
+        // Return actual duration, or fallback to a reasonable default if unavailable
+        let actual_duration = if duration > 0.0 { duration } else { 0.0 };
+        Some((position, actual_duration))
     } else {
-        // Fallback to mpris
-        if let Ok(player) = find_player() {
-            let position = player.get_position().unwrap_or_default().as_secs_f64();
-            let duration = player.get_metadata().ok()
-                .and_then(|m| m.length())
-                .unwrap_or_default().as_secs_f64();
-            Some((position, duration))
-        } else {
-            None
-        }
+        None
     }
 }
 
