@@ -1,6 +1,8 @@
 
 use mpris::PlayerFinder;
 use std::time::Duration;
+use base64::engine::Engine as _;
+use base64::engine::general_purpose::STANDARD;
 
 fn find_player() -> Result<mpris::Player, Box<dyn std::error::Error>> {
     PlayerFinder::new()?.find_active().map_err(|e| e.into())
@@ -48,12 +50,49 @@ pub fn previous_track() {
     }
 }
 
+pub fn play() {
+    if let Ok(player) = find_player() {
+        player.play().ok();
+    }
+}
+
+pub fn pause() {
+    if let Ok(player) = find_player() {
+        player.pause().ok();
+    }
+}
+
 pub fn get_media_info() -> Option<(String, Option<String>)> {
     if let Ok(player) = find_player() {
         if let Ok(metadata) = player.get_metadata() {
             let title = metadata.title().unwrap_or("Unknown Title").to_string();
             let art_url = metadata.art_url().map(|url| url.to_string());
-            Some((title, art_url))
+
+            let base64_art = if let Some(url) = art_url {
+                if url.starts_with("file://") {
+                    let path = url.trim_start_matches("file://");
+                    if let Ok(bytes) = std::fs::read(path) {
+                        Some(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
+                    } else {
+                        None
+                    }
+                } else if url.starts_with("http://") || url.starts_with("https://") {
+                    if let Ok(response) = reqwest::blocking::get(&url) {
+                        if let Ok(bytes) = response.bytes() {
+                            Some(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            Some((title, base64_art))
         } else {
             None
         }

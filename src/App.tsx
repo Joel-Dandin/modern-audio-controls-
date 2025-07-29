@@ -62,6 +62,14 @@ function App() {
     await invoke("previous_track");
   }
 
+  async function handlePlay() {
+    await invoke("play");
+  }
+
+  async function handlePause() {
+    await invoke("pause");
+  }
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
@@ -89,6 +97,8 @@ function App() {
         <button onClick={() => handleSeek(10)}>Forward 10s</button>
         <button onClick={handlePreviousTrack}>Previous</button>
         <button onClick={handleNextTrack}>Next</button>
+        <button onClick={handlePlay}>Play</button>
+        <button onClick={handlePause}>Pause</button>
       </div>
 
       {mediaTitle && <p>Now Playing: {mediaTitle}</p>}
