@@ -1,19 +1,43 @@
-use std::os::raw::{c_long};
+use alsa::mixer::{Mixer, SelemChannelId, SelemId};
 
-#[link(name = "volume", kind = "static")]
-extern "C" {
-    fn get_master_volume() -> c_long;
-    fn set_master_volume(volume: c_long);
+const CARD_NAME: &str = "default";
+const SELEM_NAME: &str = "Master";
+
+pub fn get_volume() -> Result<i64, Box<dyn std::error::Error>> {
+    let mixer = Mixer::new(CARD_NAME, false)?;
+    let selem_id = SelemId::new(SELEM_NAME, 0);
+    
+    let selem = mixer
+        .find_selem(&selem_id)
+        .ok_or("Could not find Master volume control")?;
+    
+    let (min, max) = selem.get_playback_volume_range();
+    let volume = selem.get_playback_volume(SelemChannelId::FrontLeft)?;
+    
+    let percentage = (100 * (volume - min)) / (max - min);
+    Ok(percentage)
 }
 
-pub fn get_volume() -> i64 {
-    unsafe {
-        get_master_volume() as i64
-    }
+pub fn set_volume(volume: i64) -> Result<(), Box<dyn std::error::Error>> {
+    let mixer = Mixer::new(CARD_NAME, false)?;
+    let selem_id = SelemId::new(SELEM_NAME, 0);
+    
+    let selem = mixer
+        .find_selem(&selem_id)
+        .ok_or("Could not find Master volume control")?;
+    
+    let (min, max) = selem.get_playback_volume_range();
+    let target_volume = min + (volume * (max - min)) / 100;
+    
+    selem.set_playback_volume_all(target_volume)?;
+    Ok(())
 }
 
-pub fn set_volume(volume: i64) {
-    unsafe {
-        set_master_volume(volume as c_long);
-    }
+// Compatibility functions that match the original API
+pub fn get_volume_compat() -> i64 {
+    get_volume().unwrap_or(0)
+}
+
+pub fn set_volume_compat(volume: i64) {
+    let _ = set_volume(volume.clamp(0, 100));
 }

@@ -7,12 +7,12 @@ mod media_control;
 
 #[tauri::command]
 fn get_volume() -> i64 {
-    volume_control::get_volume()
+    volume_control::get_volume_compat()
 }
 
 #[tauri::command]
 fn set_volume(volume: i64) {
-    volume_control::set_volume(volume)
+    volume_control::set_volume_compat(volume)
 }
 
 #[tauri::command]
@@ -57,9 +57,9 @@ fn get_media_info() -> Option<(String, Option<String>)> {
 
 fn spawn_volume_watcher(app: AppHandle) {
     thread::spawn(move || {
-        let mut last_volume = volume_control::get_volume();
+        let mut last_volume = volume_control::get_volume_compat();
         loop {
-            let current_volume = volume_control::get_volume();
+            let current_volume = volume_control::get_volume_compat();
             if current_volume != last_volume {
                 last_volume = current_volume;
                 app.emit("volume-changed", last_volume).unwrap();
