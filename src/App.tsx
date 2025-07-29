@@ -5,9 +5,11 @@ import "./App.css";
 
 function App() {
   const [volume, setVolume] = useState(0);
+  const [mediaPosition, setMediaPosition] = useState(0);
+  const [mediaDuration, setMediaDuration] = useState(0);
 
   useEffect(() => {
-    const unlisten = listen("volume-changed", (event) => {
+    const unlistenVolume = listen("volume-changed", (event) => {
       setVolume(event.payload as number);
     });
 
@@ -15,14 +17,38 @@ function App() {
       setVolume(initialVolume as number);
     });
 
+    const interval = setInterval(async () => {
+      const state = await invoke("get_media_state");
+      if (state) {
+        const [position, duration] = state as [number, number];
+        setMediaPosition(position);
+        setMediaDuration(duration);
+      }
+    }, 1000);
+
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenVolume.then((fn) => fn());
+      clearInterval(interval);
     };
   }, []);
 
   async function handleVolumeChange(newVolume: number) {
     await invoke("set_volume", { volume: newVolume });
   }
+
+  async function handleSeek(offset: number) {
+    await invoke("seek", { offset });
+  }
+
+  async function handleSetMediaPosition(newPosition: number) {
+    await invoke("set_position", { position: newPosition });
+  }
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
 
   return (
     <main className="container">
@@ -38,6 +64,25 @@ function App() {
         />
         <span>{volume}%</span>
       </div>
+
+      <h2>Media Controls</h2>
+      <div className="row">
+        <button onClick={() => handleSeek(-10)}>Back 10s</button>
+        <button onClick={() => handleSeek(10)}>Forward 10s</button>
+      </div>
+
+      {mediaDuration > 0 && (
+        <div className="row">
+          <input
+            type="range"
+            min="0"
+            max={mediaDuration}
+            value={mediaPosition}
+            onChange={(e) => handleSetMediaPosition(parseFloat(e.currentTarget.value))}
+          />
+          <span>{formatTime(mediaPosition)} / {formatTime(mediaDuration)}</span>
+        </div>
+      )}
     </main>
   );
 }
