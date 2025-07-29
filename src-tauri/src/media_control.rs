@@ -35,3 +35,29 @@ pub fn set_position(position: f64) {
         }
     }
 }
+
+pub fn next_track() {
+    if let Ok(player) = find_player() {
+        player.next().ok();
+    }
+}
+
+pub fn previous_track() {
+    if let Ok(player) = find_player() {
+        player.previous().ok();
+    }
+}
+
+pub fn get_media_info() -> Option<(String, Option<String>)> {
+    if let Ok(player) = find_player() {
+        if let Ok(metadata) = player.get_metadata() {
+            let title = metadata.title().unwrap_or("Unknown Title").to_string();
+            let art_url = metadata.art_url().map(|url| url.to_string());
+            Some((title, art_url))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}

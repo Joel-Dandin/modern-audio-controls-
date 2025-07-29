@@ -7,6 +7,8 @@ function App() {
   const [volume, setVolume] = useState(0);
   const [mediaPosition, setMediaPosition] = useState(0);
   const [mediaDuration, setMediaDuration] = useState(0);
+  const [mediaTitle, setMediaTitle] = useState("");
+  const [mediaCoverArt, setMediaCoverArt] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const unlistenVolume = listen("volume-changed", (event) => {
@@ -24,6 +26,14 @@ function App() {
         setMediaPosition(position);
         setMediaDuration(duration);
       }
+
+      const info = await invoke("get_media_info");
+      if (info) {
+        const [title, coverArt] = info as [string, string | undefined];
+        setMediaTitle(title);
+        setMediaCoverArt(coverArt);
+      }
+
     }, 1000);
 
     return () => {
@@ -42,6 +52,14 @@ function App() {
 
   async function handleSetMediaPosition(newPosition: number) {
     await invoke("set_position", { position: newPosition });
+  }
+
+  async function handleNextTrack() {
+    await invoke("next_track");
+  }
+
+  async function handlePreviousTrack() {
+    await invoke("previous_track");
   }
 
   const formatTime = (seconds: number) => {
@@ -69,7 +87,12 @@ function App() {
       <div className="row">
         <button onClick={() => handleSeek(-10)}>Back 10s</button>
         <button onClick={() => handleSeek(10)}>Forward 10s</button>
+        <button onClick={handlePreviousTrack}>Previous</button>
+        <button onClick={handleNextTrack}>Next</button>
       </div>
+
+      {mediaTitle && <p>Now Playing: {mediaTitle}</p>}
+      {mediaCoverArt && <img src={mediaCoverArt} alt="Media Cover" style={{ width: '100px', height: '100px' }} />}
 
       {mediaDuration > 0 && (
         <div className="row">

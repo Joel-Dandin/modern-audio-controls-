@@ -30,6 +30,21 @@ fn set_position(position: f64) {
     media_control::set_position(position);
 }
 
+#[tauri::command]
+fn next_track() {
+    media_control::next_track();
+}
+
+#[tauri::command]
+fn previous_track() {
+    media_control::previous_track();
+}
+
+#[tauri::command]
+fn get_media_info() -> Option<(String, Option<String>)> {
+    media_control::get_media_info()
+}
+
 fn spawn_volume_watcher(app: AppHandle) {
     thread::spawn(move || {
         let mut last_volume = volume_control::get_volume();
@@ -48,7 +63,7 @@ fn spawn_volume_watcher(app: AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_volume, set_volume, seek, get_media_state, set_position])
+        .invoke_handler(tauri::generate_handler![get_volume, set_volume, seek, get_media_state, set_position, next_track, previous_track, get_media_info])
         .setup(|app| {
             spawn_volume_watcher(app.handle().clone());
             Ok(())
